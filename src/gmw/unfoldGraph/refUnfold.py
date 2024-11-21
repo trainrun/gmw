@@ -60,8 +60,8 @@ class RefUnfolder(AbstrctUnfolder):
 
             
     def _accession_judge(self, str1, str2):
-        if str1 == '-' and str2 == '-':
-            return False
+        # if str1 == '-' and str2 == '-':
+        #     return False
         if str1 == "-" or str2 == "-":
             return True
         if str1 == str2:

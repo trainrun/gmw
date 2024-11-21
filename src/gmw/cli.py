@@ -54,6 +54,8 @@ logger = logging.getLogger("gmw")
 @click.option("--merge_brother", is_flag=True, help="Merge brother nodes into consensus contigs.")
 @click.option("--split_parent", is_flag=True, help="Split one node into two.")
 
+@click.option("--fast", is_flag=True, help="Fast mode. without irretaion.")
+
 @click.option("--visual", is_flag=True, help="Visualize debruijn graph.")
 @click.option("--contig_shape", default="line", help="Contig shape in debruijn graph, you can choose 'line' or 'dot'.(default line)")
 def cli(
@@ -64,6 +66,7 @@ def cli(
     disable_gc_unfold, gc_discrepancy,
     remove_unknown_nodes, keep_unknown_components, keep_short_isolated_nodes,
     disable_merge_neighbour, merge_brother, split_parent,
+    fast,
     visual, contig_shape
 ):
     """a tool for designing primer panels for multiplex PCR."""
@@ -179,6 +182,11 @@ def cli(
     """Check merge nodes parameters"""
     unfold_argv.extend([disable_merge_neighbour, merge_brother, split_parent])
     
+    """Check fast mode parameters"""
+    if blast_out is not None or kraken_out is not None:
+        logger.info("Defined 'blast_out' or 'kraken_out' prameters, start use fast mode.")
+        fast = True
+        
     """Check visualize parameters"""
     if visual and contig_shape not in ['dot', 'line']:
         logger.error(f"The contig_shape must be 'dot' or 'line'!")
@@ -199,37 +207,47 @@ def cli(
 
     logging_graph_info(graph)
 
-    nodes_num = None
-    neighbour_merger = mergeNodes.NeighbourMerger(graph)
-    while nodes_num is None or nodes_num != graph.number_of_nodes():
+    nodes_num = 0
+    edges_num = 0
+    fast_flag = True
+    run_times = 1
+
+    while (nodes_num != graph.number_of_nodes() or edges_num != graph.number_of_edges()) and fast_flag:
         nodes_num = graph.number_of_nodes()
-        neighbour_merger.merge_neibour()
-        logging_graph_info(graph)
-
-
-    if not disable_taxon_unfold:    
-        taxonUnfoler = unfoldGraph.TaxonUnfolder(*unfold_argv)
-        taxonUnfoler.unfold_graph()
-        logging_graph_info(graph)
-    
-    if not disable_ref_unfold:
-        refUnfoler = unfoldGraph.RefUnfolder(*unfold_argv)
-        refUnfoler.unfold_graph()
-        logging_graph_info(graph)
+        edges_num = graph.number_of_edges()
+        logger.info(f"Start unfold {run_times} times.")
+        if not disable_taxon_unfold:    
+            taxonUnfoler = unfoldGraph.TaxonUnfolder(*unfold_argv)
+            taxonUnfoler.unfold_graph()
+            logging_graph_info(graph)
         
-    if not disable_depth_unfold:
-        depthUnfoler = unfoldGraph.DepthUnfolder(*unfold_argv)
-        depthUnfoler.unfold_graph()
-        logging_graph_info(graph)
-        
-    if not disable_gc_unfold:       
-        gcUnfoler = unfoldGraph.GCUnfolder(*unfold_argv)
-        gcUnfoler.unfold_graph()
-        logging_graph_info(graph)
-        
+        if not disable_ref_unfold:
+            refUnfoler = unfoldGraph.RefUnfolder(*unfold_argv)
+            refUnfoler.unfold_graph()
+            logging_graph_info(graph)
+            
+        if not disable_depth_unfold:
+            depthUnfoler = unfoldGraph.DepthUnfolder(*unfold_argv)
+            depthUnfoler.unfold_graph()
+            logging_graph_info(graph)
+            
+        if not disable_gc_unfold:       
+            gcUnfoler = unfoldGraph.GCUnfolder(*unfold_argv)
+            gcUnfoler.unfold_graph()
+            logging_graph_info(graph)
+            
+        if merge_brother or split_parent:
+            emptyUnfolder = unfoldGraph.EmptyUnfolder(*unfold_argv)
+            emptyUnfolder.unfold_graph()
+            logging_graph_info(graph)
+        if fast:
+            fast_flag = False
+    polisher = unfoldGraph.Polisher(*unfold_argv)
+    polisher.polish()
+    logging_graph_info(graph)
+     
     if visual:
         visualize.print_graph(graph, after_fig_path, contig_shape)       
-        
     shared.graph2fasta(graph, fasta_path, orientation=False)
     
 def logging_graph_info(graph):

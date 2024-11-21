@@ -77,5 +77,5 @@ def remove_unknown_nodes(graph):
     graph.remove_nodes_from(unknown_nodes)
 
 def remove_contaminated_nodes(graph):
-    contaminate_nodes = [node for node in graph.nodes() if (graph.nodes[node]['TP'] == 'contaminate')]    
+    contaminate_nodes = [node for node in graph.nodes() if (graph.nodes[node]['TP'] == 'contaminate')]
     graph.remove_nodes_from(contaminate_nodes)    

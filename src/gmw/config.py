@@ -38,3 +38,13 @@ kraken_path = "kraken2"
 blast_path = "blastn"
 query_cover_offset=60
 match_length=100
+
+"""config for merge brother contigs"""
+# length_discrepancy=0
+# blastout_discrepancy=1
+similarity_score = 80
+
+
+"""config for split parent"""
+split_similarity_score = 90
+split_depth_multi = 5 

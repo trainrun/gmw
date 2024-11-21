@@ -1,142 +1,164 @@
 import mergeNodes.basicFunction as bs
 import shared
+import config
 
 class BrotherMerger:
-    """not complete"""
+    """not """
     def __init__(self, graph):
         self.graph = graph
-
 
     def merge_brother(self):
         nodes_to_remove = []
         for node in self.graph.nodes:
             out_node_edges = self._classify_edges(node)
             if len(out_node_edges['plus_out']) + len(out_node_edges['minus_in']) > 1:
-                pass
-    def merge_neibour(self):
-        bs.remove_redundant_edges(self.graph)       
-        nodes_to_remove = []
-        for node in self.graph.nodes:
-            while True:
-                out_node_edges = self._classify_edges(node)
-                if len(out_node_edges['plus_out']) == 1 and len(out_node_edges['minus_in']) == 0:
-                    in_node_edges = self._classify_edges(out_node_edges['plus_out'][0][1])
-                    if (out_node_edges['plus_out'][0][3]['label'][2] == '+' and len(in_node_edges['plus_in']) == 1 and len(in_node_edges['minus_out']) == 0
-                    ) or (out_node_edges['plus_out'][0][3]['label'][2] == '-' and len(in_node_edges['minus_in']) == 1 and len(in_node_edges['plus_out']) == 0): 
-                        nodes_to_remove.append(out_node_edges['plus_out'][0][1])
-                        self._merge_node_property(out_node_edges['plus_out'][0])
-                        self._move_edges(out_node_edges['plus_out'][0])
-                        continue
-                if len(out_node_edges['minus_out']) == 1 and len(out_node_edges['plus_in']) == 0:
-                    in_node_edges = self._classify_edges(out_node_edges['minus_out'][0][1])
-                    if (out_node_edges['minus_out'][0][3]['label'][2] == '+' and len(in_node_edges['plus_in']) == 1 and len(in_node_edges['minus_out']) == 0
-                    ) or (out_node_edges['minus_out'][0][3]['label'][2] == '-' and len(in_node_edges['minus_in']) == 1 and len(in_node_edges['plus_out']) == 0): 
-                        nodes_to_remove.append(out_node_edges['minus_out'][0][1])
-                        self._merge_node_property(out_node_edges['minus_out'][0])
-                        self._move_edges(out_node_edges['minus_out'][0])
-                        continue
-                break
-        self.graph.remove_nodes_from(nodes_to_remove)
-        
-    def _merge_node_property(self, connect_edge):
-        node_to_keep = self.graph.nodes[connect_edge[0]]
-        node_to_merge = self.graph.nodes[connect_edge[1]]
-        label = connect_edge[3]['label']
-        cigar = connect_edge[3]['cigar']
-        new_seq = ""
-        if label == '+/+':
-            keep_seq = node_to_keep['seq']
-            merge_seq = node_to_merge['seq']
-            new_seq = bs.cigar_merge(keep_seq, merge_seq, cigar)
-        elif label == '-/-':
-            keep_seq = node_to_keep['seq']
-            merge_seq = node_to_merge['seq']
-            new_seq = bs.cigar_merge(merge_seq, keep_seq, cigar)
-        elif label == '+/-':
-            keep_seq = node_to_keep['seq']
-            merge_seq = shared.reverse_complement(node_to_merge['seq'])
-            new_seq = bs.cigar_merge(keep_seq, merge_seq, cigar)
-        elif label == '-/+':
-            keep_seq = node_to_keep['seq']
-            merge_seq = shared.reverse_complement(node_to_merge['seq'])
-            new_seq = bs.cigar_merge(merge_seq, keep_seq, cigar)
-        
-        if 'DP' in node_to_keep and 'DP' in node_to_merge:
-            node_to_keep['DP'] = round((node_to_keep['DP'] * node_to_keep['length'] + node_to_merge['DP'] * node_to_merge['length']
-                                ) / (node_to_keep['length'] + node_to_merge['length']),2)
-        if 'KC' in node_to_keep and 'KC' in node_to_merge:
-            node_to_keep['KC'] += node_to_merge['KC']
-        if node_to_keep['ST'] == 0 or node_to_keep['ST']>node_to_merge['ST']:
-            node_to_keep['ST'] = node_to_merge['ST']
-        if node_to_keep['EN']<node_to_merge['EN']:
-            node_to_keep['EN'] = node_to_merge['EN']
-        if node_to_keep['AC'] == '-':
-            node_to_keep['AC'] = node_to_merge['AC']
-        if node_to_keep['TP'] == '-':
-            node_to_keep['TP'] == node_to_merge['TP']
-        
-        if node_to_keep['OR'] == '?' and node_to_merge['OR'] != '?':
-            if label[0] == label[2]:
-                node_to_keep['OR'] = node_to_merge['OR']
-            else:
-                node_to_keep['OR'] = '+' if node_to_merge['OR'] == '-' else '-'
-                
-        node_to_keep['length'] = len(new_seq)
-        node_to_keep['seq'] = new_seq
-             
-    def _move_edges(self, connect_edge):
-        node_to_keep = connect_edge[0]
-        node_to_merge = connect_edge[1]
-        label = connect_edge[3]['label']
-        if label == '+/+' or label == '-/-':
+                merge_edges = [*out_node_edges['plus_out'], *out_node_edges['minus_in']]
+                for i in range(len(merge_edges)):
+                    node_tuple1 = self._judge_node_property(node, merge_edges[i])
+                    if node_tuple1[0] in nodes_to_remove:
+                        continue 
+                    for j in range(i+1, len(merge_edges)):
+                        node_tuple2 = self._judge_node_property(node, merge_edges[j])
+                        if node_tuple2[0] in nodes_to_remove:
+                            continue 
+                        if node_tuple1[2] != node_tuple2[2]:
+                            raise ValueError("Nodes direction error!")
+                        is_brother = self._judge_brother(node_tuple1, node_tuple2)
+                        if is_brother:
+                            self._move_edges(node, node_tuple1, node_tuple2)
+                            self._merge_node_property(node_tuple1, node_tuple2)
+                            self._degenerated_neighbour(node_tuple1[0])
+                            nodes_to_remove.append(node_tuple2[0])
+            if len(out_node_edges['plus_in']) + len(out_node_edges['minus_out']) > 1:
+                merge_edges = [*out_node_edges['plus_in'], *out_node_edges['minus_out']]
+                for i in range(len(merge_edges)):
+                    node_tuple1 = self._judge_node_property(node, merge_edges[i])
+                    if node_tuple1[0] in nodes_to_remove:
+                        continue 
+                    for j in range(i+1, len(merge_edges)):
+                        node_tuple2 = self._judge_node_property(node, merge_edges[j])
+                        if node_tuple2[0] in nodes_to_remove:
+                            continue 
+                        if node_tuple1[2] != node_tuple2[2]:
+                            raise ValueError("Nodes direction error!")
+                        is_brother = self._judge_brother(node_tuple1, node_tuple2)
+                        if is_brother:
+                            self._move_edges(node, node_tuple1, node_tuple2)
+                            self._merge_node_property(node_tuple1, node_tuple2)
+                            self._degenerated_neighbour(node_tuple1[0])
+                            nodes_to_remove.append(node_tuple2[0])
+        self.graph.remove_nodes_from(nodes_to_remove)                    
+                    
+    def _judge_brother(self, node_tuple1, node_tuple2):
+        node1 = self.graph.nodes[node_tuple1[0]]
+        node2 = self.graph.nodes[node_tuple2[0]]
+        if node1['length'] == node2['length']:
+            seq2 = node2['seq'] if node_tuple1[1]==node_tuple2[1] else shared.reverse_complement(node2['seq'])
+            similarity_score = bs.calculate_similarity(node1['seq'], seq2)
+            if similarity_score >= config.similarity_score:
+                return True
+        return False
+    
+    def _move_edges(self, node, node_tuple1, node_tuple2):
+        node_to_keep = node_tuple1[0]
+        node_to_merge = node_tuple2[0]
+        if node_tuple1[1] == node_tuple2[1]:
             for u, v, data in self.graph.in_edges(node_to_merge, data=True): 
-                if u == node_to_keep:
+                if u == node:
                     continue
-                new_key = 0
                 if self.graph.has_edge(u, node_to_keep):
-                    all_keys = self.graph[u][node_to_keep].keys()
-                    new_key = max(all_keys)+1
-                self.graph.add_edge(u, node_to_keep, key=new_key, **data)
+                    continue
+                self.graph.add_edge(u, node_to_keep, key=0, **data)
             for u, v, data in self.graph.out_edges(node_to_merge, data=True): 
-                if v == node_to_keep:
+                if v == node:
                     continue
-                new_key = 0
                 if self.graph.has_edge(node_to_keep, v):
-                    all_keys = self.graph[node_to_keep][v].keys()
-                    new_key = max(all_keys)+1
-                self.graph.add_edge(node_to_keep, v, key=new_key, **data) 
-        elif label == '+/-' or label == '-/+':
-            for u, v, data in self.graph.in_edges(node_to_merge, data=True): 
-                if u == node_to_keep:
                     continue
-                new_key = 0
+                self.graph.add_edge(node_to_keep, v, key=0, **data) 
+        else:
+            for u, v, data in self.graph.in_edges(node_to_merge, data=True): 
+                if u == node:
+                    continue
                 if self.graph.has_edge(u, node_to_keep):
-                    all_keys = self.graph[u][node_to_keep].keys()
-                    new_key = max(all_keys)+1
+                    continue                
                 if data['label'][2] == '+':
                     data['label'] = data['label'][:2] + '-'
                 elif data['label'][2] == '-':
                     data['label'] = data['label'][:2] + '+'
-                self.graph.add_edge(u, node_to_keep, key=new_key, **data)
+                
+                self.graph.add_edge(u, node_to_keep, key=0, **data)
             for u, v, data in self.graph.out_edges(node_to_merge, data=True): 
-                if v == node_to_keep:
+                if v == node:
                     continue
-                new_key = 0
                 if self.graph.has_edge(u, node_to_keep):
-                    all_keys = self.graph[node_to_keep][v].keys()
-                    new_key = max(all_keys)+1
+                    continue
                 if data['label'][0] == '+':
                     data['label'] =  '-' + data['label'][1:]
                 elif data['label'][0] == '-':
-                    data['label'] =  '+' + data['label'][1:]
-                    
-                self.graph.add_edge(node_to_keep, v, key=new_key, **data) 
-        else:
-            raise ValueError(f"Edges have wrong label {label}")
-                        
+                    data['label'] =  '+' + data['label'][1:]             
+                self.graph.add_edge(node_to_keep, v, key=0, **data)             
         edges_to_remove = list(self.graph.in_edges(node_to_merge, keys=True)) + list(self.graph.out_edges(node_to_merge, keys=True))
         self.graph.remove_edges_from(edges_to_remove)
-                                   
+    
+    def _judge_node_property(self, node, edge):
+        if node == edge[1]:
+            from_direction = edge[3]['label'][0]
+            to_direction = edge[3]['label'][2]
+            return (edge[0], from_direction, to_direction)
+        elif node == edge[0]:
+            direction_dict = {"+/+": "-/-", "-/-": "+/+", "+/-": "+/-", "-/+": "-/+"}
+            label = direction_dict[edge[3]['label']]
+            return (edge[1], label[0], label[2])
+        else:
+            raise ValueError("node not in edge!")
+
+    def _merge_node_property(self, node_tuple1, node_tuple2):
+        node_to_keep = self.graph.nodes[node_tuple1[0]]
+        node_to_merge = self.graph.nodes[node_tuple2[0]]
+
+        if 'DP' in node_to_keep and 'DP' in node_to_merge:
+            node_to_keep['DP'] += node_to_keep['DP']
+        if 'KC' in node_to_keep and 'KC' in node_to_merge:
+            node_to_keep['KC'] += node_to_merge['KC']
+        seq2 = node_to_merge['seq'] if node_tuple1[1]==node_tuple2[1] else shared.reverse_complement(node_to_merge['seq'])
+        seq = bs.create_consensus_sequence(node_to_keep['seq'], seq2)
+        node_to_keep['seq'] = seq
+
+    def _degenerated_neighbour(self, node):
+        for u, v, data in self.graph.in_edges(node, data=True): 
+            # v == node
+            if u == v:
+                continue
+            seq_u = self.graph.nodes[u]['seq']
+            seq_v = self.graph.nodes[v]['seq']
+            if data['label'] == '-/-':
+                self.graph.nodes[u]['seq'] = bs.cigar_judge_connect(seq_v, seq_u, data['cigar'])
+            elif data['label'] == '-/+':
+                self.graph.nodes[u]['seq'] = bs.cigar_judge_connect(shared.reverse_complement(seq_v), seq_u, data['cigar'])
+            elif data['label'] == '+/-':
+                self.graph.nodes[u]['seq'] = shared.reverse_complement(
+                    bs.cigar_judge_connect(seq_v, shared.reverse_complement(seq_u), data['cigar']))
+            elif data['label'] == '+/+':
+                self.graph.nodes[u]['seq'] = shared.reverse_complement(
+                    bs.cigar_judge_connect(shared.reverse_complement(seq_v), shared.reverse_complement(seq_u), data['cigar']))
+                              
+        for u, v, data in self.graph.out_edges(node, data=True):
+            # u == node    
+            if u == v:
+                continue
+            seq_u = self.graph.nodes[u]['seq']
+            seq_v = self.graph.nodes[v]['seq']
+            if data['label'] == '+/+':
+                self.graph.nodes[v]['seq'] = bs.cigar_judge_connect(seq_u, seq_v, data['cigar'])
+            elif data['label'] == '-/+':
+                self.graph.nodes[v]['seq'] = bs.cigar_judge_connect(shared.reverse_complement(seq_u), seq_v, data['cigar'])
+            elif data['label'] == '+/-':
+                self.graph.nodes[v]['seq'] = shared.reverse_complement(
+                    bs.cigar_judge_connect(seq_u, shared.reverse_complement(seq_v), data['cigar']))
+            elif data['label'] == '-/-':
+                self.graph.nodes[v]['seq'] = shared.reverse_complement(
+                    bs.cigar_judge_connect(shared.reverse_complement(seq_u), shared.reverse_complement(seq_v), data['cigar']))
+                    
     def _classify_edges(self, node):
         classified_edges = {"plus_in":[], "plus_out":[], "minus_in":[], "minus_out":[]}
         node_edges = self.graph.in_edges(node, keys=True, data=True)
