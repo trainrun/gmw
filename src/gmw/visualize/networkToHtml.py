@@ -1,15 +1,55 @@
+""" 
+GMW: Genomic Microbe-Wise - hybrid assembly and contamination removal tool 
+
+Copyright (C) 2025 Wenbing Chen 
+www.github.com/trainrun/gmw 
+
+License: 
+This program is free software: you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published by 
+the Free Software Foundation, either version 3 of the License, or 
+(at your option) any later version. 
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   
+See the GNU General Public License for more details. 
+
+You should have received a copy of the GNU General Public License 
+along with this program. If not, see <https://www.gnu.org/licenses/>. 
+"""
+
 import json
 
 import config
 import visualize.htmlStr as htmlStr
 
+# Module for converting genome assembly graphs to interactive HTML visualizations
+
 def print_graph(graph, file_path, contig_shape):
+    """
+    Generate an HTML visualization of a genome assembly graph.
+    
+    Parameters:
+        graph: NetworkX graph representing the genome assembly
+        file_path: Path to save the HTML output file
+        contig_shape: Shape of contigs in visualization ('dot' or 'line')
+    """
     if contig_shape == 'dot':
         print_dot(graph, file_path)
     else:
         print_line(graph, file_path)
         
 def print_dot(graph, file_path, edge_color=config.edge_color, node_shape=config.node_shape):
+    """
+    Generate an HTML visualization with nodes as dots.
+    
+    Parameters:
+        graph: NetworkX graph representing the genome assembly
+        file_path: Path to save the HTML output file
+        edge_color: Color for graph edges
+        node_shape: Shape for graph nodes
+    """
     data_dict = convert_node_json(graph)
     option_dict = {"physics": True, "edges":{"color": edge_color}, "nodes":{"shape": node_shape}}
     with open(file_path, "w") as file:
@@ -20,6 +60,15 @@ def print_dot(graph, file_path, edge_color=config.edge_color, node_shape=config.
         file.write(htmlStr.tail)
 
 def convert_node_json(graph):
+    """
+    Convert a NetworkX graph to a JSON format suitable for dot visualization.
+    
+    Parameters:
+        graph: NetworkX graph representing the genome assembly
+    
+    Returns:
+        dict: JSON-compatible dictionary with nodes and edges data
+    """
     color_dict = {"unknown": "grey", "target": "pink", "contaminate": "skyblue"}
     graph_data = {
         "nodes": [],
@@ -34,6 +83,15 @@ def convert_node_json(graph):
     return graph_data
 
 def print_line(graph, file_path, edge_color=config.edge_color, node_shape=config.node_shape):
+    """
+    Generate an HTML visualization with nodes as lines.
+    
+    Parameters:
+        graph: NetworkX graph representing the genome assembly
+        file_path: Path to save the HTML output file
+        edge_color: Color for graph edges
+        node_shape: Shape for graph nodes
+    """
     data_dict = convert_edge_json(graph)
     option_dict = {"physics": {"enabled": True, "stabilization": True}, 
                    "nodes": {"size": 10, "shape": node_shape, "color": {"background": "rgba(255,255,255,0)", "border": 'rgba(255, 255, 255, 0)'}},

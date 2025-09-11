@@ -1,3 +1,24 @@
+""" 
+GMW: Genomic Microbe-Wise - hybrid assembly and contamination removal tool 
+
+Copyright (C) 2025 Wenbing Chen 
+www.github.com/trainrun/gmw 
+
+License: 
+This program is free software: you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published by 
+the Free Software Foundation, either version 3 of the License, or 
+(at your option) any later version. 
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   
+See the GNU General Public License for more details. 
+
+You should have received a copy of the GNU General Public License 
+along with this program. If not, see <https://www.gnu.org/licenses/>. 
+"""
+
 from re import match
 from typing import Callable
 from json import loads, dumps
@@ -8,6 +29,12 @@ from re import search
 
 
 class GFAParser:
+    """
+    Parser for GFA (Graphical Fragment Assembly) files.
+    This class provides static methods for parsing and interpreting GFA files,
+    which are used to represent genome assembly graphs.
+    This file is modified from GFAGraphs (https://github.com/dubssieg/gfagraphs/tree/gfagraphs).
+    """
     @staticmethod
     def get_gfa_format(gfa_file_path: str | list[str]) -> str | list[str]:
         """Given a file, or more, returns the gfa subtypes, and raises error if file is invalid or does not exists.
@@ -22,15 +49,6 @@ class GFAParser:
         -------
         str | list[str]
             per path, a tag identifying the gfa type
-
-        Raises
-        ------
-        OSError
-            Specified file does not exists
-        IOError
-            File descriptor is invalid
-        IOError
-            File is empty
         """
         styles: list[str] = list()
         if isinstance(gfa_file_path, str):

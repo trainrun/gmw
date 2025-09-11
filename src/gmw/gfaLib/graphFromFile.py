@@ -1,4 +1,24 @@
-"Modelizes a graph object"
+""" 
+GMW: Genomic Microbe-Wise - hybrid assembly and contamination removal tool 
+
+Copyright (C) 2025 Wenbing Chen 
+www.github.com/trainrun/gmw 
+
+License: 
+This program is free software: you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published by 
+the Free Software Foundation, either version 3 of the License, or 
+(at your option) any later version. 
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   
+See the GNU General Public License for more details. 
+
+You should have received a copy of the GNU General Public License 
+along with this program. If not, see <https://www.gnu.org/licenses/>. 
+"""
+
 from itertools import count
 
 from gfaLib.abstractions import GFALine, Orientation, reverse
@@ -6,6 +26,13 @@ from gfaLib.gfaparser import GFAParser
 from gfaLib.abstractGraph import AbstractGraph
 
 class GraphFromFile(AbstractGraph):
+    """
+    A class for creating a GFA graph from a GFA file.
+    
+    This class reads a GFA (Graphical Fragment Assembly) file and constructs
+    a graph representation with segments, paths, links, and headers. It supports
+    different memory modes and can handle various GFA formats.
+    """
 
     def __init__(
         self,
@@ -14,6 +41,15 @@ class GraphFromFile(AbstractGraph):
         low_memory: bool = False,
         regexp: str = ".*",
     ) -> None:
+        """
+        Initialize a GraphFromFile object by parsing a GFA file.
+        
+        Parameters:
+            gfa_file: Path to the GFA file to parse
+            with_sequence: Whether to load sequence data into memory
+            low_memory: If True, uses memory-efficient mode with reduced functionality
+            regexp: Regular expression pattern to filter lines during parsing
+        """
         super().__init__()
         # Declaring format attributes, generators...
         self.metadata: dict = {
@@ -51,6 +87,14 @@ class GraphFromFile(AbstractGraph):
                     pass  # Ignore unknown line types
 
     def add_node(self, name, sequence, **metadata):
+        """
+        Add a new node (segment) to the graph.
+        
+        Parameters:
+            name: Unique identifier for the node
+            sequence: The DNA/RNA sequence of the segment
+            **metadata: Additional attributes to store with the segment
+        """
         if not self.metadata['with_sequence']:
             self.segments[name] = {
                 'length': len(sequence),
@@ -64,6 +108,19 @@ class GraphFromFile(AbstractGraph):
             }
 
     def add_edge(self, source, ori_source, sink, ori_sink, **metadata):
+        """
+        Add a new edge (link) between two nodes in the graph.
+        
+        Parameters:
+            source: Name of the source node
+            ori_source: Orientation of the source node ('+', '-', '?', '=')
+            sink: Name of the sink node
+            ori_sink: Orientation of the sink node ('+', '-', '?', '=')
+            **metadata: Additional attributes to store with the edge
+            
+        Raises:
+            ValueError: If the orientation values are not compatible with GFA format
+        """
         if not ori_sink in ['+', '-', '?', '=']:
             try:
                 ori_sink = ori_sink.value
@@ -84,6 +141,18 @@ class GraphFromFile(AbstractGraph):
                 'orientation', set()) | set([(Orientation(ori_source), Orientation(ori_sink))])
 
     def add_path(self, identifier, name, chain, start=0, end=None, origin=None, **metadata):
+        """
+        Add a path (ordered sequence of nodes) to the graph.
+        
+        Parameters:
+            identifier: Unique identifier for the path
+            name: Name of the path
+            chain: List of (node_name, orientation) tuples defining the path
+            start: Starting offset in the path (default: 0)
+            end: Ending offset in the path (default: sum of all segment lengths)
+            origin: Source or origin information for the path
+            **metadata: Additional attributes to store with the path
+        """
         self.paths[name] = {
             "id": identifier,
             "name": name,

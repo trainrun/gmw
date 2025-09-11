@@ -1,7 +1,30 @@
+""" 
+GMW: Genomic Microbe-Wise - hybrid assembly and contamination removal tool 
+
+Copyright (C) 2025 Wenbing Chen 
+www.github.com/trainrun/gmw 
+
+License: 
+This program is free software: you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published by 
+the Free Software Foundation, either version 3 of the License, or 
+(at your option) any later version. 
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   
+See the GNU General Public License for more details. 
+
+You should have received a copy of the GNU General Public License 
+along with this program. If not, see <https://www.gnu.org/licenses/>. 
+"""
+
 import unfoldGraph.basicFunction as bs
 from unfoldGraph.abstrctUnfold import AbstrctUnfolder
+from unfoldGraph.bgll import BGLLCluster
 import shared
 import unfoldGraph.taxon as taxon
+
 class TaxonUnfolder(AbstrctUnfolder):
     # def __init__(self,graph):
         # self.graph = graph
@@ -29,6 +52,24 @@ class TaxonUnfolder(AbstrctUnfolder):
                 self._run_kraken(fasta_name)
             
             bs.graph_add_type(self.graph, self.kraken_out, self.taxon_id, taxon_parse)
+            
+            con_nodes = 0 
+            for node in self.graph.nodes:
+                if self.graph.nodes[node]['TP'] == "contaminate":
+                    con_nodes += 1
+            print(f"node num {con_nodes}") 
+            
+            if self.bgll:
+                self.logger.info("Start BGLL")
+                cluster = BGLLCluster(self.graph)
+                cluster.louvain_algorithm()
+                self._output_gfa("/home/cwb/chen/gmw_test/ncov/draw_graph.gfa")
+            con_nodes = 0 
+            for node in self.graph.nodes:
+                if self.graph.nodes[node]['TP'] == "contaminate":
+                    con_nodes += 1
+            print(f"node num {con_nodes}") 
+            
             self._visual_graph(visual_typing)
             # self.graph.remove_nodes_from(remove_list)
         if not self.disable_ref_unfold:
