@@ -83,7 +83,10 @@ class TaxonUnfolder(AbstrctUnfolder):
     
     def _run_kraken(self, fasta_name):
         shared.graph2fasta(self.graph, fasta_name)
-        shared.run_kraken(fasta_name, self.kraken_db, self.kraken_out)
+        if self.threads:
+            shared.run_kraken(fasta_name, self.kraken_db, self.kraken_out, threads=self.threads)
+        else:
+            shared.run_kraken(fasta_name, self.kraken_db, self.kraken_out)
         
     def _clear_graph_type(self):
         for node in self.graph.nodes:

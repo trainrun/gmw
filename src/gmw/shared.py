@@ -144,7 +144,7 @@ def run_blast(fasta, db, out, threads=config.max_threads):
     result = subprocess.check_call(commands)
     
 def run_kraken(fasta, db, output, threads=config.max_threads):
-    commands = [config.kraken_path, "--db", db, "--output", output, "--threads", str(threads), "--confidence", str(config.confidence), "--memory-mapping", fasta]
+    commands = [config.kraken_path, "--db", db, "--output", output, "--threads", str(threads), "--confidence", str(config.confidence), fasta]
     logger.info(' '.join(commands))
     result = subprocess.check_call(commands)
     

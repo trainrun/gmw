@@ -35,7 +35,6 @@ import click
 import logging
 import os
 import sys
-
 import gfaLib
 import unfoldGraph
 import mergeNodes
@@ -101,84 +100,6 @@ def cli(
 ):
     """
     GMW: A comprehensive tool for genome assembly graph manipulation and metagenome analysis.
-    
-    This function serves as the main entry point for the GMW workflow, orchestrating
-    various graph unfolding strategies, node merging operations, and visualization.
-    It processes GFA (Graphical Fragment Assembly) files and applies multiple analysis
-    methods to improve genome assembly quality and separate metagenomic components.
-    
-    The workflow includes:
-    1. Taxonomic-based graph unfolding using Kraken classification
-    2. Reference-based unfolding using BLAST alignment
-    3. Depth-based unfolding using sequencing coverage information
-    4. GC content-based unfolding
-    5. Node merging and graph optimization
-    6. Optional visualization of results
-    
-    Parameters
-    ----------
-    gfa : str
-        Path to input GFA file containing the assembly graph
-    outdir : str
-        Output directory for results and intermediate files
-    prefix : str
-        Prefix for output files and directories
-    threads : int
-        Number of threads to use for parallel processing
-    force : bool
-        Force overwrite of existing output files
-    disable_taxon_unfold : bool
-        Skip taxonomic-based graph unfolding
-    use_gfa_taxon : bool
-        Parse taxonomic information directly from GFA file
-    kraken_out : str
-        Path to existing Kraken output file (optional)
-    taxon_db : str
-        Directory containing NCBI taxonomy database files
-    taxon_id : str
-        Target taxonomy ID for species of interest
-    taxon_name : str
-        Scientific name of target species
-    kraken_db : str
-        Directory containing Kraken database
-    bgll : bool
-        Use BGLL algorithm for taxonomic inference
-    disable_ref_unfold : bool
-        Skip reference-based graph unfolding
-    use_gfa_ref : bool
-        Parse reference position information from GFA file
-    blast_out : str
-        Path to existing BLAST output file (optional)
-    blast_db : str
-        Path to BLAST database for reference alignment
-    position_distance : int
-        Maximum distance threshold for position-based edge removal
-    disable_depth_unfold : bool
-        Skip depth-based graph unfolding
-    depth_discrepancy : int
-        Depth ratio threshold for edge removal
-    disable_gc_unfold : bool
-        Skip GC content-based graph unfolding
-    gc_discrepancy : float
-        GC content difference threshold for edge removal
-    remove_unknown_nodes : bool
-        Remove nodes with unknown taxonomic classification
-    keep_unknown_components : bool
-        Preserve unknown components in the graph
-    keep_short_isolated_nodes : bool
-        Preserve short isolated nodes
-    disable_merge_neighbour : bool
-        Skip merging of neighboring nodes
-    merge_brother : bool
-        Merge brother nodes into consensus contigs
-    split_parent : bool
-        Split parent nodes into separate components
-    fast : bool
-        Enable fast mode without iteration
-    visual : bool
-        Generate visualization of the graph
-    contig_shape : str
-        Shape style for contigs in visualization ('line' or 'dot')
     """
     
     # Validate and create output directory
@@ -406,4 +327,4 @@ def setup_logging(output_path, prefix):
     logger.info(f"Writing log to {log_filepath}")
 
 if __name__ == "__main__":
-    cli()
+    cli(prog_name="python src/gmw/cli.py -g GFA_input_file")
